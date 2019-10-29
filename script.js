@@ -4,6 +4,7 @@ const context = canvas.getContext('2d');
 context.scale(20, 20);
 
 function arenaSweep() {
+  let rowCount = 1;
   outer: for (let y = arena.length - 1; y > 0; --y) {
     for (let x = 0; x < arena[y].length; ++x) {
       if (arena[y][x] === 0) {
@@ -13,6 +14,9 @@ function arenaSweep() {
     const row = arena.splice(y, 1)[0].fill(0);
     arena.unshift(row);
     ++y;
+    player.score += rowCount * 10;
+    rowCount *= 2;
+    player.level = Math.floor(player.score / 100);
   }
 }
 
@@ -64,6 +68,7 @@ function drawMatrix(matrix, offset) {
       if (value !== 0) {
         context.fillStyle = colors[value];
         context.fillRect(x + offset.x, y + offset.y, 1, 1);
+        context.strokeStyle = 'red';
       }
     });
   });
@@ -108,6 +113,8 @@ function playerDrop() {
     merge(arena, player);
     playerReset();
     arenaSweep();
+    updateScore();
+    updateLevel();
   }
   dropCounter = 0;
 }
@@ -127,6 +134,8 @@ function playerReset() {
     ((arena[0].length / 2) | 0) - ((player.matrix[0].length / 2) | 0);
   if (collide(arena, player)) {
     arena.forEach(row => row.fill(0));
+    player.score = 0;
+    updateScore();
   }
 }
 
@@ -146,12 +155,12 @@ function playerRotate(dir) {
 }
 
 let dropCounter = 0;
-let dropInterval = 50;
 
 let lastTime = 0;
+
 function update(time = 0) {
   const deltaTime = time - lastTime;
-
+  let dropInterval = 900 - 100 * player.level;
   dropCounter += deltaTime;
   if (dropCounter > dropInterval) {
     playerDrop();
@@ -161,6 +170,14 @@ function update(time = 0) {
 
   draw();
   requestAnimationFrame(update);
+}
+
+function updateLevel() {
+  document.getElementById('level').innerText = player.level;
+}
+
+function updateScore() {
+  document.getElementById('score').innerText = player.score;
 }
 
 document.addEventListener('keydown', e => {
@@ -184,10 +201,6 @@ document.addEventListener('keydown', e => {
   else if (e.keyCode === 69) {
     playerRotate(1);
   }
-  // Key up
-  // if (e.keyCode === 38) {
-  //   player.pos.y++;
-  // }
 });
 
 const colors = [
@@ -205,8 +218,10 @@ const arena = createMatrix(12, 20);
 
 const player = {
   pos: { x: 0, y: 0 },
-  matrix: null
+  matrix: null,
+  score: 0,
+  level: 0
 };
-arena[19].fill(1);
+
 playerReset();
 update();
